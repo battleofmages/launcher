@@ -15,8 +15,8 @@ public class Launcher : MonoBehaviour {
 	
 	private string statusMessage = "Checking for updates...";
 	
-	private string launcherVersionURL = "http://battle-of-mages.com/download/launcher.ini";
-	private string gameVersionURL = "http://battle-of-mages.com/download/game.ini";
+	private string launcherVersionURL = "http://battleofmages.com/download/launcher.ini";
+	private string gameVersionURL = "http://battleofmages.com/download/game.ini";
 	
 	private WWW request;
 	private float downloadStartTime;
@@ -30,6 +30,7 @@ public class Launcher : MonoBehaviour {
 	private int maxWidth = 0;
 	private int maxHeight = 0;
 	
+	// Awake
 	void Awake() {
 		Screen.fullScreen = false;
 		
@@ -46,9 +47,12 @@ public class Launcher : MonoBehaviour {
 		maxWidth = Screen.currentResolution.width;
 		maxHeight = Screen.currentResolution.height;
 		Debug.Log("Current resolution: " + maxWidth + "x" + maxHeight);
+		
+		// Resolution
+		Screen.SetResolution(640, 150, false);
 	}
 	
-	// Use this for initialization
+	// Start
 	void Start () {
 		Application.targetFrameRate = 20;
 		
@@ -72,6 +76,34 @@ public class Launcher : MonoBehaviour {
 		StartCoroutine(LauncherDownload());
 	}
 	
+	// OnGUI
+	void OnGUI() {
+		// Set font
+		if(GUI.skin.font != font)
+			GUI.skin.font = font;
+		
+		var width = Screen.width * 0.9f;
+		var height = 92;
+		
+		GUILayout.BeginArea(new Rect(Screen.width / 2 - width / 2, Screen.height / 2 - height / 2, width, height));
+		GUILayout.BeginVertical();
+		
+		if(!installed) {
+			GUILayout.Label(statusMessage, textStyle);
+			
+			if(!request.isDone)
+				progress = request.progress;
+			
+			DrawProgress();
+		} else {
+			DrawPlayButton();
+		}
+		
+		GUILayout.EndVertical();
+		GUILayout.EndArea();
+	}
+	
+#region Coroutines
 	// LauncherDownload
 	IEnumerator LauncherDownload() {
 		statusMessage = "Downloading launcher updates...";
@@ -139,7 +171,11 @@ public class Launcher : MonoBehaviour {
 				yield return null;
 				
 				// Restart
-				StartProcess(curDir + "/Tools/updatelauncher.bat", "\"" + curDir + "\\Tools\\xcopy.exe\" " + "\"" + newLauncherPath.Replace("/", "\\") + "*\" \"" + curDir.Replace("/", "\\") + "\" \"" + launcherExePath.Replace("/", "\\") + "\"", false);
+				StartProcess(
+					curDir + "/Tools/updatelauncher.bat",
+					"\"" + curDir + "\\Tools\\xcopy.exe\" " + "\"" + newLauncherPath.Replace("/", "\\") + "*\" \"" + curDir.Replace("/", "\\") + "\" \"" + launcherExePath.Replace("/", "\\") + "\"",
+					false
+				);
 				Application.Quit();
 			} else {
 				// Download game
@@ -276,6 +312,7 @@ public class Launcher : MonoBehaviour {
 			yield return null;
 		}
 	}
+#endregion
 	
 	// LoadVersion
 	int LoadVersion(string filePath) {
@@ -297,51 +334,7 @@ public class Launcher : MonoBehaviour {
 		File.WriteAllText(filePath, content);
 	}
 	
-	// To start a process silently
-	public static System.Diagnostics.Process StartProcess(string cmd, string args = "", bool show = true, bool shell = true) {
-		System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo(cmd, args);
-		System.Diagnostics.Process p = new System.Diagnostics.Process();
-		
-		if(!show) {
-			psi.CreateNoWindow = true;
-		}
-		
-		if(!shell) {
-			psi.UseShellExecute = false;
-		}
-		
-		p.StartInfo = psi;
-		p.Start();
-		
-		return p;
-	}
-	
-	void OnGUI() {
-		// Set font
-		if(GUI.skin.font != font)
-			GUI.skin.font = font;
-		
-		var width = Screen.width * 0.9f;
-		var height = 92;
-		
-		GUILayout.BeginArea(new Rect(Screen.width / 2 - width / 2, Screen.height / 2 - height / 2, width, height));
-		GUILayout.BeginVertical();
-		
-		if(!installed) {
-			GUILayout.Label(statusMessage, textStyle);
-			
-			if(!request.isDone)
-				progress = request.progress;
-			
-			DrawProgress();
-		} else {
-			DrawPlayButton();
-		}
-		
-		GUILayout.EndVertical();
-		GUILayout.EndArea();
-	}
-	
+	// DrawPlayButton
 	void DrawPlayButton() {
 		GUI.skin.button.fontSize = 32;
 		GUI.skin.button.padding = new RectOffset(15, 15, 15, 15);
@@ -374,6 +367,7 @@ public class Launcher : MonoBehaviour {
 		GUILayout.EndHorizontal();
 	}
 	
+	// DrawProgress
 	void DrawProgress() {
 		ProgressBar(
 			((int)(progress * 100)) + " %",
@@ -409,14 +403,35 @@ public class Launcher : MonoBehaviour {
 		}
 	}
 	
+	// Fail
 	void Fail(System.Exception e) {
 		statusMessage = "Error installing the latest version.";
 		Debug.LogError(e != null ? e.ToString() : "Unknown error.");
 		installed = false;
 	}
 	
+	// ParseURL
 	string ParseURL(string url, int nextVersion) {
 		return url.Replace("{version}", nextVersion.ToString()).Replace("{os}", "windows");
+	}
+	
+	// To start a process silently
+	public static System.Diagnostics.Process StartProcess(string cmd, string args = "", bool show = true, bool shell = true) {
+		System.Diagnostics.ProcessStartInfo psi = new System.Diagnostics.ProcessStartInfo(cmd, args);
+		System.Diagnostics.Process p = new System.Diagnostics.Process();
+		
+		if(!show) {
+			psi.CreateNoWindow = true;
+		}
+		
+		if(!shell) {
+			psi.UseShellExecute = false;
+		}
+		
+		p.StartInfo = psi;
+		p.Start();
+		
+		return p;
 	}
 	
 	// Progress bar
